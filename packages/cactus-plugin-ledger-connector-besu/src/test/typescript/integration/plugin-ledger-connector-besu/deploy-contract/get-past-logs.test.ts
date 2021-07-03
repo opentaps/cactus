@@ -4,7 +4,7 @@ import { PluginRegistry } from "@hyperledger/cactus-core";
 import {
   PluginLedgerConnectorBesu,
   PluginFactoryLedgerConnector,
-  GetBalanceV1Request,
+  GetPastLogsV1Request,
 } from "../../../../../main/typescript/public-api";
 import { PluginKeychainMemory } from "@hyperledger/cactus-plugin-keychain-memory";
 import { BesuTestLedger } from "@hyperledger/cactus-test-tooling";
@@ -13,7 +13,7 @@ import HelloWorldContractJson from "../../../../solidity/hello-world-contract/He
 import Web3 from "web3";
 import { PluginImportType } from "@hyperledger/cactus-core-api";
 
-test("can get balance of an account", async (t: Test) => {
+test("can get past logs of an account", async (t: Test) => {
   const logLevel: LogLevelDesc = "TRACE";
   const besuTestLedger = new BesuTestLedger();
   await besuTestLedger.start();
@@ -32,6 +32,7 @@ test("can get balance of an account", async (t: Test) => {
    * @see https://github.com/hyperledger/besu/blob/1.5.1/config/src/main/resources/dev.json
    */
   const firstHighNetWorthAccount = "627306090abaB3A6e1400e9345bC60c78a8BEf57";
+
   const web3 = new Web3(rpcApiHttpHost);
   const testEthAccount = web3.eth.accounts.create(uuidv4());
 
@@ -53,6 +54,7 @@ test("can get balance of an account", async (t: Test) => {
   const factory = new PluginFactoryLedgerConnector({
     pluginImportType: PluginImportType.Local,
   });
+
   const connector: PluginLedgerConnectorBesu = await factory.create({
     rpcApiHttpHost,
     rpcApiWsHost,
@@ -60,11 +62,10 @@ test("can get balance of an account", async (t: Test) => {
     pluginRegistry: new PluginRegistry({ plugins: [keychainPlugin] }),
   });
 
-  const req: GetBalanceV1Request = { address: firstHighNetWorthAccount };
-  const currentBalance = await connector.getBalance(req);
-  t.comment(JSON.stringify(currentBalance));
-  //makes the information in to string
-  t.ok(currentBalance, " Balance response is OK :-)");
-  t.equal(typeof currentBalance, "object", "Balance response type is OK :-)");
+  const req: GetPastLogsV1Request = { address: firstHighNetWorthAccount };
+  const pastLogs = await connector.getPastLogs(req);
+  t.comment(JSON.stringify(pastLogs));
+  t.ok(pastLogs, "Past logs response is OK :-)");
+  t.equal(typeof pastLogs, "object", "Past logs response type is OK :-)");
   t.end();
 });
