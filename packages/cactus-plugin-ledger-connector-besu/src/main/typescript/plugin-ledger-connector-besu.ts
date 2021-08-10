@@ -7,7 +7,6 @@ import type { Express } from "express";
 import { promisify } from "util";
 import { Optional } from "typescript-optional";
 import Web3 from "web3";
-import { AbiItem } from "web3-utils";
 
 import { Contract, ContractSendMethod } from "web3-eth-contract";
 import { TransactionReceipt } from "web3-eth";
@@ -66,9 +65,12 @@ import {
   Web3SigningCredentialType,
   GetTransactionV1Request,
   GetTransactionV1Response,
-} from "./generated/openapi/typescript-axios/";
+  GetBlockV1Request,
+  GetBlockV1Response,
+  GetBesuRecordV1Request,
+  GetBesuRecordV1Response,
+} from "./generated/openapi/typescript-axios";
 
-import { RunTransactionEndpoint } from "./web-services/run-transaction-endpoint";
 import { InvokeContractEndpoint } from "./web-services/invoke-contract-endpoint";
 import { isWeb3SigningCredentialNone } from "./model-type-guards";
 import { BesuSignTransactionEndpointV1 } from "./web-services/sign-transaction-endpoint-v1";
@@ -80,6 +82,10 @@ import {
 import { WatchBlocksV1Endpoint } from "./web-services/watch-blocks-v1-endpoint";
 import { GetBalanceEndpoint } from "./web-services/get-balance-endpoint";
 import { GetTransactionEndpoint } from "./web-services/get-transaction-endpoint";
+import { GetPastLogsEndpoint } from "./web-services/get-past-logs-endpoint";
+import { RunTransactionEndpoint } from "./web-services/run-transaction-endpoint";
+import { GetBlockEndpoint } from "./web-services/get-block-v1-endpoint-";
+import { GetBesuRecordEndpointV1 } from "./web-services/get-besu-record-endpoint-v1";
 
 export const E_KEYCHAIN_NOT_FOUND = "cactus.connector.besu.keychain_not_found";
 
@@ -226,7 +232,21 @@ export class PluginLedgerConnectorBesu
       endpoints.push(endpoint);
     }
     {
+      const endpoint = new GetPastLogsEndpoint({
+        connector: this,
+        logLevel: this.options.logLevel,
+      });
+      endpoints.push(endpoint);
+    }
+    {
       const endpoint = new RunTransactionEndpoint({
+        connector: this,
+        logLevel: this.options.logLevel,
+      });
+      endpoints.push(endpoint);
+    }
+    {
+      const endpoint = new GetBlockEndpoint({
         connector: this,
         logLevel: this.options.logLevel,
       });
@@ -241,6 +261,13 @@ export class PluginLedgerConnectorBesu
     }
     {
       const endpoint = new BesuSignTransactionEndpointV1({
+        connector: this,
+        logLevel: this.options.logLevel,
+      });
+      endpoints.push(endpoint);
+    }
+    {
+      const endpoint = new GetBesuRecordEndpointV1({
         connector: this,
         logLevel: this.options.logLevel,
       });
@@ -293,7 +320,8 @@ export class PluginLedgerConnectorBesu
           `${fnTag} Cannot create an instance of the contract because the contractName and the contractName of the JSON doesn't match`,
         );
       }
-      const contractJSON = (await keychainPlugin.get(contractName)) as any;
+      const contractStr = await keychainPlugin.get(contractName);
+      const contractJSON = JSON.parse(contractStr);
       if (
         contractJSON.networks === undefined ||
         contractJSON.networks[networkId] === undefined ||
@@ -538,7 +566,7 @@ export class PluginLedgerConnectorBesu
 
     // Now use the found keychain plugin to actually perform the lookup of
     // the private key that we need to run the transaction.
-    const privateKeyHex = await keychainPlugin?.get<string>(keychainEntryKey);
+    const privateKeyHex = await keychainPlugin?.get(keychainEntryKey);
 
     return this.transactPrivateKey({
       transactionConfig,
@@ -647,12 +675,8 @@ export class PluginLedgerConnectorBesu
         if (status && contractAddress) {
           const networkInfo = { address: contractAddress };
 
-          type SolcJson = {
-            abi: AbiItem[];
-            networks: unknown;
-          };
-          const contractJSON = await keychainPlugin.get<SolcJson>(contractName);
-
+          const contractStr = await keychainPlugin.get(contractName);
+          const contractJSON = JSON.parse(contractStr);
           this.log.debug("Contract JSON: \n%o", JSON.stringify(contractJSON));
 
           const contract = new this.web3.eth.Contract(
@@ -664,7 +688,7 @@ export class PluginLedgerConnectorBesu
           const network = { [networkId]: networkInfo };
           contractJSON.networks = network;
 
-          keychainPlugin.set(contractName, contractJSON);
+          await keychainPlugin.set(contractName, JSON.stringify(contractJSON));
         }
       } else {
         throw new Error(
@@ -748,5 +772,64 @@ export class PluginLedgerConnectorBesu
   ): Promise<GetPastLogsV1Response> {
     const logs = await this.web3.eth.getPastLogs(request);
     return { logs };
+  }
+
+  public async getBlock(
+    request: GetBlockV1Request,
+  ): Promise<GetBlockV1Response> {
+    const block = await this.web3.eth.getBlock(request.blockHashOrBlockNumber);
+    return { block };
+  }
+  public async getBesuRecord(
+    request: GetBesuRecordV1Request,
+  ): Promise<GetBesuRecordV1Response> {
+    const fnTag = `${this.className}#getBesuRecord()`;
+    //////////////////////////////////////////////
+    let abi: any = undefined;
+    const resp: GetBesuRecordV1Response = {};
+    const txHash = request.transactionHash;
+
+    if (txHash) {
+      const transaction = await this.web3.eth.getTransaction(txHash);
+      if (transaction.input) {
+        resp.transactionInputData = transaction.input;
+        return resp;
+      }
+    }
+
+    if (request.invokeCall) {
+      if (request.invokeCall.contractAbi) {
+        if (typeof request.invokeCall.contractAbi === "string") {
+          abi = JSON.parse(request.invokeCall.contractAbi);
+        } else {
+          abi = request.invokeCall.contractAbi;
+        }
+      }
+      const { contractAddress } = request.invokeCall;
+      const contractInstance = new this.web3.eth.Contract(abi, contractAddress);
+      const methodRef = contractInstance.methods[request.invokeCall.methodName];
+      Checks.truthy(
+        methodRef,
+        `${fnTag} YourContract.${request.invokeCall.methodName}`,
+      );
+      const method: ContractSendMethod = methodRef(
+        ...request.invokeCall.params,
+      );
+
+      if (
+        request.invokeCall.invocationType === EthContractInvocationType.Call
+      ) {
+        const callOutput = await (method as any).call();
+        const res: GetBesuRecordV1Response = {
+          callOutput,
+        };
+        return res;
+      } else {
+        throw new Error(
+          `${fnTag} Unsupported invocation type ${request.invokeCall.invocationType}`,
+        );
+      }
+    }
+    return resp;
   }
 }

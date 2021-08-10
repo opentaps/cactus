@@ -19,7 +19,7 @@ import {
   Web3SigningCredentialType,
 } from "@hyperledger/cactus-plugin-ledger-connector-quorum";
 
-import { ListBambooHarvestEndpoint as Constants } from "./list-bamboo-harvest-endpoint-constants";
+import OAS from "../../../json/openapi.json";
 import { BambooHarvestConverter } from "../../model/converter/bamboo-harvest-converter";
 
 export interface IListBambooHarvestEndpointOptions {
@@ -31,12 +31,6 @@ export interface IListBambooHarvestEndpointOptions {
 }
 
 export class ListBambooHarvestEndpoint implements IWebServiceEndpoint {
-  public static readonly HTTP_PATH = Constants.HTTP_PATH;
-
-  public static readonly HTTP_VERB_LOWER_CASE = Constants.HTTP_VERB_LOWER_CASE;
-
-  public static readonly OPENAPI_OPERATION_ID = Constants.OPENAPI_OPERATION_ID;
-
   public static readonly CLASS_NAME = "ListBambooHarvestEndpoint";
 
   private readonly log: Logger;
@@ -61,6 +55,12 @@ export class ListBambooHarvestEndpoint implements IWebServiceEndpoint {
     this.log = LoggerProvider.getOrCreate({ level, label });
   }
 
+  public getOasPath() {
+    return OAS.paths[
+      "/api/v1/plugins/@hyperledger/cactus-example-supply-chain-backend/list-bamboo-harvest"
+    ];
+  }
+
   getAuthorizationOptionsProvider(): IAsyncProvider<IEndpointAuthzOptions> {
     // TODO: make this an injectable dependency in the constructor
     return {
@@ -79,11 +79,13 @@ export class ListBambooHarvestEndpoint implements IWebServiceEndpoint {
   }
 
   public getVerbLowerCase(): string {
-    return ListBambooHarvestEndpoint.HTTP_VERB_LOWER_CASE;
+    const apiPath = this.getOasPath();
+    return apiPath.get["x-hyperledger-cactus"].http.verbLowerCase;
   }
 
   public getPath(): string {
-    return ListBambooHarvestEndpoint.HTTP_PATH;
+    const apiPath = this.getOasPath();
+    return apiPath.get["x-hyperledger-cactus"].http.path;
   }
 
   public getExpressRequestHandler(): IExpressRequestHandler {
@@ -95,7 +97,7 @@ export class ListBambooHarvestEndpoint implements IWebServiceEndpoint {
     try {
       this.log.debug(`${tag}`);
 
-      const { data } = await this.opts.apiClient.apiV1QuorumInvokeContract({
+      const { data } = await this.opts.apiClient.invokeContractV1({
         contractName: this.opts.contractName,
         invocationType: EthContractInvocationType.Call,
         methodName: "getAllRecords",

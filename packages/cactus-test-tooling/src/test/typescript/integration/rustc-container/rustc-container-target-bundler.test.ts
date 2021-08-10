@@ -3,7 +3,7 @@ import test, { Test } from "tape-promise/tape";
 import temp from "temp";
 import esm from "esm";
 import fs from "fs-extra";
-import { LogLevelDesc } from "../../../../../../cactus-common/dist/types/main/typescript";
+import { LogLevelDesc } from "@hyperledger/cactus-common";
 import {
   Containers,
   RustcBuildCmd,
@@ -74,6 +74,8 @@ test("compiles Rust code to bundler targeted .wasm", async (t: Test) => {
   const wasmPackBuildOut = await Containers.exec(
     dockerodeContainer,
     RustcBuildCmd.WASM_PACK_BUILD_BUNDLER,
+    300000,
+    "TRACE",
   );
   t.ok(wasmPackBuildOut, "wasmPackBuildOut truthy OK");
 

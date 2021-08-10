@@ -38,7 +38,8 @@ import HashTimeLockJSON from "../../../../../../cactus-plugin-htlc-eth-besu-erc2
 const logLevel: LogLevelDesc = "INFO";
 const estimatedGas = 6721975;
 const expiration = 2147483648;
-const receiver = "0x627306090abaB3A6e1400e9345bC60c78a8BEf57";
+const besuTestLedger = new BesuTestLedger({ logLevel });
+const receiver = "0x" + besuTestLedger.getGenesisAccountPubKey();
 const hashLock =
   "0x3c335ba7f06a8b01d0596589f73c19069e21c81e5013b91f408165d1bf623d32";
 const firstHighNetWorthAccount = "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1";
@@ -67,6 +68,7 @@ test(testCase, async (t: Test) => {
   test.onFinish(async () => {
     await besuTestLedger.stop();
     await besuTestLedger.destroy();
+    await pruneDockerAllIfGithubAction({ logLevel });
   });
 
   const rpcApiHttpHost = await besuTestLedger.getRpcApiHttpHost();
@@ -78,11 +80,19 @@ test(testCase, async (t: Test) => {
     // pre-provision keychain with mock backend holding the private key of the
     // test account that we'll reference while sending requests with the
     // signing credential pointing to this keychain entry.
-    backend: new Map([[TestTokenJSON.contractName, TestTokenJSON]]),
+    backend: new Map([
+      [TestTokenJSON.contractName, JSON.stringify(TestTokenJSON)],
+    ]),
     logLevel,
   });
-  keychainPlugin.set(DemoHelperJSON.contractName, DemoHelperJSON);
-  keychainPlugin.set(HashTimeLockJSON.contractName, HashTimeLockJSON);
+  keychainPlugin.set(
+    DemoHelperJSON.contractName,
+    JSON.stringify(DemoHelperJSON),
+  );
+  keychainPlugin.set(
+    HashTimeLockJSON.contractName,
+    JSON.stringify(HashTimeLockJSON),
+  );
   const factory = new PluginFactoryLedgerConnector({
     pluginImportType: PluginImportType.Local,
   });
@@ -242,7 +252,7 @@ test(testCase, async (t: Test) => {
     web3SigningCredential,
     gas: estimatedGas,
   };
-  const responseNewContract = await api.newContract(request);
+  const responseNewContract = await api.newContractV1(request);
   t.equal(responseNewContract.status, 200, "response status is 200 OK");
 
   t.comment("Get status of HTLC");
@@ -262,7 +272,7 @@ test(testCase, async (t: Test) => {
     ],
   });
   const ids = [responseTxId.callOutput as string];
-  const res = await api.getStatus(
+  const res = await api.getStatusV1(
     ids,
     web3SigningCredential,
     connectorId,
@@ -292,12 +302,19 @@ test("Test get invalid id status", async (t: Test) => {
     // pre-provision keychain with mock backend holding the private key of the
     // test account that we'll reference while sending requests with the
     // signing credential pointing to this keychain entry.
-    backend: new Map([[TestTokenJSON.contractName, TestTokenJSON]]),
+    backend: new Map([
+      [TestTokenJSON.contractName, JSON.stringify(TestTokenJSON)],
+    ]),
     logLevel,
   });
-  keychainPlugin.set(DemoHelperJSON.contractName, DemoHelperJSON);
-  keychainPlugin.set(HashTimeLockJSON.contractName, HashTimeLockJSON);
-
+  keychainPlugin.set(
+    DemoHelperJSON.contractName,
+    JSON.stringify(DemoHelperJSON),
+  );
+  keychainPlugin.set(
+    HashTimeLockJSON.contractName,
+    JSON.stringify(HashTimeLockJSON),
+  );
   const factory = new PluginFactoryLedgerConnector({
     pluginImportType: PluginImportType.Local,
   });
@@ -436,12 +453,12 @@ test("Test get invalid id status", async (t: Test) => {
     web3SigningCredential,
     gas: estimatedGas,
   };
-  const responseNewContract = await api.newContract(request);
+  const responseNewContract = await api.newContractV1(request);
   t.equal(responseNewContract.status, 200, "response status is 200 OK");
 
   t.comment("Get invalid status of HTLC");
   const fakeId = "0x66616b654964";
-  const res = await api.getStatus(
+  const res = await api.getStatusV1(
     [fakeId],
     web3SigningCredential,
     connectorId,
@@ -449,11 +466,5 @@ test("Test get invalid id status", async (t: Test) => {
   );
   t.equal(res.status, 200, "response status is 200 OK");
   t.equal(res.data[0], "0", "the contract status is 0 - INVALID");
-  t.end();
-});
-
-test("AFTER " + testCase, async (t: Test) => {
-  const pruning = pruneDockerAllIfGithubAction({ logLevel });
-  await t.doesNotReject(pruning, "Pruning did not throw OK");
   t.end();
 });

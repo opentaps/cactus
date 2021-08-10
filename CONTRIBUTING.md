@@ -13,12 +13,12 @@
     - [Running unit tests only](#running-unit-tests-only)
     - [Running integration tests only](#running-integration-tests-only)
     - [What is npx used for?](#what-is-npx-used-for)
+    - [What's the equivalent of npx for Yarn?](#whats-the-equivalent-of-npx-for-yarn)
     - [Debugging a test case](#debugging-a-test-case)
   - [All-In-One Docker Images for Ledger Connector Plugins](#all-in-one-docker-images-for-ledger-connector-plugins)
     - [Test Automation of Ledger Plugins](#test-automation-of-ledger-plugins)
   - [Building the SDK](#building-the-sdk)
-  - [Adding a new public npm dependency to one of the packages:](#adding-a-new-public-npm-dependency-to-one-of-the-packages)
-  - [Adding a sibling package npm dependency to one of the packages:](#adding-a-sibling-package-npm-dependency-to-one-of-the-packages)
+  - [Adding new dependencies:](#adding-new-dependencies)
   - [Reload VSCode Window After Adding Dependencies](#reload-vscode-window-after-adding-dependencies)
   - [On Reproducible Builds](#on-reproducible-builds)
 
@@ -99,21 +99,23 @@ Further reading:
     1. Make sure your commit message follows the formatting requirements (details above) and here: [Conventional Commits syntax](https://www.conventionalcommits.org/en/v1.0.0-beta.4/#specification); this aids in release notes generation which we intend to automate
     2. Be aware that we are using git commit hooks for the automation of certain mundane tasks such as applying the required code style and formatting so your code will be wrapped at 80 characters each line automatically. If you wish to see how your changes will be altered by the formatter you can run the `npm run prettier` command from a terminal or install an IDE extension for the `Prettier` tool that can do the same (VSCode has one that is known to work).
 8. Ensure your branch is rebased onto the `upstream` main branch where `upstream` is fancy git talk for the main Cactus repo on Github (the one you created your fork from).
-   1. If you are having trouble, there are many great resources out there (so we will not write another here).
+   1. **Do not** duplicate your pull request after it has been reviewed. Duplication here means closing the existing PR and then opening a brand new one which does not contain the review history anymore. If you encounter issues with version control that you do not know how to solve the maintainers will be happy to assist to ensure that you do not need to open a new pull request from scratch.
+      1. The only exception from the rule above is if you mistakenly named your branch to contain special characters and somehow ended up in a state where it has become impossible to push changes to the remote due to this (which has happened before with branch names like `refactor(core-api): x` that had to  be renamed to `refactor-core-api-x` and then a new PR had to be created in that case because GitHub does not let you rename the remote branch that your pull request is tied to)
+   2. If you are having trouble, there are many great resources out there (so we will not write another here).
       1. If you are having trouble locating a suitable guide specifically on the mechanics of rebasing, we can recommend [this one](https://thoughtbot.com/blog/git-interactive-rebase-squash-amend-rewriting-history). Thanks to Rafael for the link!
       2. If you went through that tutorial and still not quite sure what's up, give this one a shot as well: https://about.gitlab.com/blog/2020/11/23/keep-git-history-clean-with-interactive-rebase/
-   2. If merge conflicts arise, you must fix these at rebase time since omitting this step does not magically make the conflicts go away, just pushes it over the fence to the maintainer who will attempt to merge your pull request at a later point in time.
-   3. If the above happens, at that point said maintainer will most likely ask you (if not already) to perform the rebase anyway since as the author of a change you are best positioned to resolve any conflicts on the code level. Occassionally maintainers may do the merge/conflict resolution themselves, but do not count on this nor try to make a habit out of relying on the potential kindness.
-   4. After successful rebasing, take another look at your commit(s). Ideally there should be just one in each pull request, but also on the other hand each commit should be as small, simple and self contained as possible, so there can be cases where it makes sense to submit a PR with multiple commits if for example you also had to change something in the test tooling while implementing a feature (in which case there could be a commit for the feature itself and another for the necessary changes to the test tooling package). What we respectfully ask though is that you try to avoid these situations and submit most of your PRs with a single, self contained commit that does not touch multiple things. This significantly reduces the cognitive load required to review the changes which in turn makes everyone happier: the maintainers will have an easier job reviewing, which means they'll be doing it faster which will (probably) cause you joy in turn.
+   3. If merge conflicts arise, you must fix these at rebase time since omitting this step does not magically make the conflicts go away, just pushes it over the fence to the maintainer who will attempt to merge your pull request at a later point in time.
+   4. If the above happens, at that point said maintainer will most likely ask you (if not already) to perform the rebase anyway since as the author of a change you are best positioned to resolve any conflicts on the code level. Occassionally maintainers may do the merge/conflict resolution themselves, but do not count on this nor try to make a habit out of relying on the potential kindness.
+   5. After successful rebasing, take another look at your commit(s). Ideally there should be just one in each pull request, but also on the other hand each commit should be as small, simple and self contained as possible, so there can be cases where it makes sense to submit a PR with multiple commits if for example you also had to change something in the test tooling while implementing a feature (in which case there could be a commit for the feature itself and another for the necessary changes to the test tooling package). What we respectfully ask though is that you try to avoid these situations and submit most of your PRs with a single, self contained commit that does not touch multiple things. This significantly reduces the cognitive load required to review the changes which in turn makes everyone happier: the maintainers will have an easier job reviewing, which means they'll be doing it faster which will (probably) cause you joy in turn.
 9.  Push your changes to your main (or whatever you named your feature branch, that is entirely up to you at the end of the day)
 10. Initiate a pull request from your fork to the base repository
-   5. Remember: Opening a pull request is like saying "Hey maintainers, I have this change finalized and ready for you to spend time on reviewing it." The word `finalized` here is understood to imply that you are not planning on doing any more changes on the branch apart from when being asked to by the reviewers.
-   6. It is perfectly acceptable to open a pull request and mark it as `draft` (a GitHub feature) which then signals to the maintainers that if they have time, they are welcome to look at the change, but it may or may not be in its final form yet so you are not responsible for potential loss of time on their end if the review has to be performed multiple times on account of changes. Once you promote your draft PR to a real one, the comments from the point above apply however.
-   7. If your pull request contains a significant change, we recommend that you apply the similarly named github label on in it as well. It is okay if you do not do this, if we detect that the change is indeed significant, we will apply the label. If you do it in advance however, it will probably speed up the proceedings by removing one communication roundtrip from the review process of your pull request.
+   6. Remember: Opening a pull request is like saying "Hey maintainers, I have this change finalized and ready for you to spend time on reviewing it." The word `finalized` here is understood to imply that you are not planning on doing any more changes on the branch apart from when being asked to by the reviewers.
+   7. It is perfectly acceptable to open a pull request and mark it as `draft` (a GitHub feature) which then signals to the maintainers that if they have time, they are welcome to look at the change, but it may or may not be in its final form yet so you are not responsible for potential loss of time on their end if the review has to be performed multiple times on account of changes. Once you promote your draft PR to a real one, the comments from the point above apply however.
+   8. If your pull request contains a significant change, we recommend that you apply the similarly named github label on in it as well. It is okay if you do not do this, if we detect that the change is indeed significant, we will apply the label. If you do it in advance however, it will probably speed up the proceedings by removing one communication roundtrip from the review process of your pull request.
 11. Await CI, DCO & linting quality checks, as well as any feedback from reviewers
 12. If you need to update your pull request either because you discovered an issue or because you were asked to do so we ask that you:
-   8.  try to add the change in a way that does not produce additional commits on the PR but instead do an `git commit --amend --signoff` on your local branch and then a force push to the remote branch of yours (the PR essentially). Again, if the change you are doing does not fit within any one of the existing commits of your PR, then it is justified to add a new commit and this is up to your discretion (maintainers may respectfully ask you to squash if they see otherwise)
-   9.  The rule of thumb for any and all things in git/Cactus is to maintain a clean, tidy commit log/history that enables everyone to easily look up changes and find accurate answers to the basic questions of `Who? / What? / When / Why?`. If you have ever been in a situation when you tried to figure out the original point a bug was introduced (and tried to figure out why the offending change was made in the first place) and the git blame just lead you to a 10 megabyte large patch with the message 'merge xyz', then you know exactly what it is we are trying to avoid here. :-)
+   9.  try to add the change in a way that does not produce additional commits on the PR but instead do an `git commit --amend --signoff` on your local branch and then a force push to the remote branch of yours (the PR essentially). Again, if the change you are doing does not fit within any one of the existing commits of your PR, then it is justified to add a new commit and this is up to your discretion (maintainers may respectfully ask you to squash if they see otherwise)
+   10. The rule of thumb for any and all things in git/Cactus is to maintain a clean, tidy commit log/history that enables everyone to easily look up changes and find accurate answers to the basic questions of `Who? / What? / When / Why?`. If you have ever been in a situation when you tried to figure out the original point a bug was introduced (and tried to figure out why the offending change was made in the first place) and the git blame just lead you to a 10 megabyte large patch with the message 'merge xyz', then you know exactly what it is we are trying to avoid here. :-)
 
 ## PR Checklist - Maintainer/Reviewer
 
@@ -362,7 +364,7 @@ for both them separately anyway:
   - A unit test:
 
       ```sh
-      npx tap --ts --timeout=600 packages/cactus-common/src/test/typescript/unit/objects/get-all-method-names.ts
+      npx tap --ts --timeout=600 packages/cactus-common/src/test/typescript/unit/objects/get-all-method-names.test.ts
       ```
 
 #### Running all test cases (unit+integration)
@@ -389,6 +391,10 @@ npm run test:integration
 place every node module (project dependencies) on the OS path or to install them globally (`npm install some-pkg -g`)
 
 Read more about npx here: https://blog.npmjs.org/post/162869356040/introducing-npx-an-npm-package-runner
+
+#### What's the equivalent of npx for Yarn?
+
+Yarn itself. E.g. `npx lerna clean` becomes `yarn lerna clean`.
 
 #### Debugging a test case
 
@@ -417,7 +423,7 @@ These produce the `hyperledger/cactus-besu-all-in-one` and
 `hyperledger/cactus-quorum-all-in-one` images respectively. Both of these are
 used in the test cases that are written for the specific ledger connector
 plugins at:
-* `packages/cactus-test-plugin-ledger-connector-quorum/src/test/typescript/integration/plugin-ledger-connector-quorum/deploy-contract/deploy-contract-via-web-service.ts`
+* `packages/cactus-test-plugin-ledger-connector-quorum/src/test/typescript/integration/plugin-ledger-connector-quorum/deploy-contract/deploy-contract-via-web-service.test.ts`
 * `packages/cactus-plugin-ledger-connector-besu/src/test/typescript/integration/plugin-ledger-connector-besu/deploy-contract/deploy-contract-from-json.ts`
 
 The specific classes that utilize the `all-in-one` images can be found in the
@@ -444,7 +450,7 @@ container from scratch, execute the test scenario and then tear down and delete
 the container completely.
 
 An example for a ledger connector plugin and it's test automation implemented the way it is explained above:
-`packages/cactus-test-plugin-ledger-connector-quorum/src/test/typescript/integration/plugin-ledger-connector-quorum/deploy-contract/deploy-contract-via-web-service.ts`
+`packages/cactus-test-plugin-ledger-connector-quorum/src/test/typescript/integration/plugin-ledger-connector-quorum/deploy-contract/deploy-contract-via-web-service.test.ts`
 
 > This test case is also an example of how to run an ApiServer independently with a single ledger plugin which is
 > how the test case is set up to begin with.
@@ -462,7 +468,7 @@ chmod +x ./packages/cactus-cmd-api-server/dist/lib/main/typescript/cmd/cactus-ap
 You can run this test case the same way you would run any other test case (which is also a requirement in itself for each test case):
 
 ```sh
-npx tap --ts --timeout=600 packages/cactus-test-plugin-ledger-connector-quorum/src/test/typescript/integration/plugin-ledger-connector-quorum/deploy-contract/deploy-contract-via-web-service.ts
+npx tap --ts --timeout=600 packages/cactus-test-plugin-ledger-connector-quorum/src/test/typescript/integration/plugin-ledger-connector-quorum/deploy-contract/deploy-contract-via-web-service.test.ts
 ```
 
 You can specify an arbitrary set of test cases to run in a single execution via glob patterns. Examples of these glob
@@ -493,7 +499,7 @@ npx tap --ts --jobs=1 --timeout=600 \"./\"
 ### Building the SDK
 
 You do not need to do anything special to have the SDK sources generated and
-compiled. It is all part of the `npm run build` task which you can run yourself
+compiled. It is all part of the `npm run build:dev:backend` task which you can run yourself
 or as part of the CI script (`./tools/ci.sh`).
 
 The SDK is itself just another package named `sdk` and can be dependend on by
@@ -504,33 +510,25 @@ browser and also NodeJS environments. This is very important as we do not wish
 to maintain two (or more) separate SDK codebases and we also want as much of it
 being generated automatically as possible (currently this is close to 100%).
 
-### Adding a new public npm dependency to one of the packages:
+### Adding new dependencies:
 
-For example web3 can be added as a dependency to the besu ledger connector plugin's package this way:
-
-```sh
-npx lerna add web3@latest --scope '*/*plugin-ledger-connector-besu' --exact # [--dev] [--peer]
-```
-
-If you are adding a development dependency you can use the `--dev` option and `--peer` for a peer dependency.
-
-After running any `lerna add` command you might need to [Reload VSCode Window After Adding Dependencies](#reload-vscode-window-after-adding-dependencies)
-
-### Adding a sibling package npm dependency to one of the packages:
-
-For example the `cactus-test-tooling` can be added as a dev dependency to the besu ledger connector plugin's package this way:
+Example:
 
 ```sh
-npx lerna add @hyperledger/cactus-test-tooling --scope '*/*plugin-ledger-connector-besu' --exact --dev
+# Adds "got" as a dependency to the cactus common package
+# Note that you must specify the fully qualified package name as present in
+# the package.json file
+yarn workspace @hyperledger/cactus-common add got --save-exact
 ```
 
-Or add the common library to allow you the usage of the logger for example:
+You need to know which package of the monorepo will be using the package and then
+run the `yarn workspace` command with an additional parameters specifying the package
+name and the dependency name. 
+See [Yarn Workspaces Documentation](https://classic.yarnpkg.com/en/docs/cli/workspace/) for the official Yarn documentation for further details and examples.
 
-```sh
-npx lerna add @hyperledger/cactus-common --scope '*/*plugin-ledger-connector-quorum' --exact --dev
-```
+After adding new dependencies, you might need to [Reload VSCode Window After Adding Dependencies](#reload-vscode-window-after-adding-dependencies)
 
-After running any `lerna add` command you might need to [Reload VSCode Window After Adding Dependencies](#reload-vscode-window-after-adding-dependencies)
+> **Always specify the `--save-exact` when installing new dependencies to ensure [reproducible builds](https://reproducible-builds.org/)**
 
 ### Reload VSCode Window After Adding Dependencies
 

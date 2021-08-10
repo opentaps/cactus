@@ -110,10 +110,9 @@ test("PluginKeychainMemory", (t1: Test) => {
     const hasAfterDelete1 = await plugin.has(key1);
     t.false(hasAfterDelete1, "hasAfterDelete === false OK");
 
-    const valueAfterDelete1 = await plugin.get(key1);
-    t.notok(valueAfterDelete1, "valueAfterDelete falsy OK");
+    await t.rejects(plugin.get(key1), key1);
     {
-      const res = await apiClient.getPrometheusExporterMetricsV1();
+      const res = await apiClient.getPrometheusMetricsV1();
       const promMetricsOutput =
         "# HELP " +
         K_CACTUS_KEYCHAIN_MEMORY_TOTAL_KEY_COUNT +
@@ -146,7 +145,7 @@ test("PluginKeychainMemory", (t1: Test) => {
     t.ok(valueAfter2, "valueAfter truthy OK");
     t.equal(valueAfter2, value2, "valueAfter === value OK");
     {
-      const res = await apiClient.getPrometheusExporterMetricsV1();
+      const res = await apiClient.getPrometheusMetricsV1();
       const promMetricsOutput =
         "# HELP " +
         K_CACTUS_KEYCHAIN_MEMORY_TOTAL_KEY_COUNT +
